@@ -32,6 +32,8 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses; // Хранит все данные для фильтрации
+        private CertificateGenerator _certificateGenerator = new CertificateGenerator();
+        private FlowDocument _currentCertificate;
         private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxYzvHNfsXlB2PaUVZF34Yx6RMaaxb3L93-l7GDKt6ObwLVpAVFoqhvtv5AkQ8FF6DxLA/exec";
         public MainWindow()
         {
