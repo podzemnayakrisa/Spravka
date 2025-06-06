@@ -1,0 +1,63 @@
+﻿<Window x:Class="Spravka.AddEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Spravka"
+        mc:Ignorable="d"
+        Title="Добавить/Редактировать запись" 
+        Height="380" Width="400"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Существующие поля -->
+        <TextBlock Text="ФИО:" Grid.Row="0"/>
+        <TextBox x:Name="txtFullName" Grid.Row="1" Margin="0,0,0,10"/>
+
+        <TextBlock Text="Email:" Grid.Row="2"/>
+        <TextBox x:Name="txtEmail" Grid.Row="3" Margin="0,0,0,10"/>
+
+        <TextBlock Text="Курс:" Grid.Row="4"/>
+        <TextBox x:Name="txtCourse" Grid.Row="5" Margin="0,0,0,10"/>
+
+        <!-- Новые поля -->
+        <TextBlock Text="Форма обучения:" Grid.Row="6"/>
+        <ComboBox x:Name="cmbEducationForm" Grid.Row="7" Margin="0,0,0,10">
+            <ComboBoxItem Content="Очная"/>
+            <ComboBoxItem Content="Заочная"/>
+        </ComboBox>
+
+        <TextBlock Text="Основа обучения:" Grid.Row="8"/>
+        <ComboBox x:Name="cmbBasis" Grid.Row="9" Margin="0,0,0,10">
+            <ComboBoxItem Content="Бюджет"/>
+            <ComboBoxItem Content="Платная"/>
+        </ComboBox>
+
+        <TextBlock Text="Статус:" Grid.Row="10"/>
+        <ComboBox x:Name="cmbStatus" Grid.Row="11" Margin="0,0,0,20">
+            <ComboBoxItem Content="Новый" IsSelected="True"/>
+            <ComboBoxItem Content="В работе"/>
+            <ComboBoxItem Content="Готово"/>
+        </ComboBox>
+
+        <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="ОК" Width="80" Margin="0,0,10,0" Click="OkButton_Click"/>
+            <Button Content="Отмена" Width="80" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
