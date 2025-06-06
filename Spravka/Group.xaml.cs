@@ -31,7 +31,7 @@ namespace Spravka
     public partial class Group : Window
     {
         private ObservableCollection<GroupItem> _groups = new ObservableCollection<GroupItem>();
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxK4jsiq0-RNG1rncdeInRABFZ8dlW2kiqhGVzlFyaLLAaZlXC3iqorEb6yRHJ9BMMGCQ/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxYzvHNfsXlB2PaUVZF34Yx6RMaaxb3L93-l7GDKt6ObwLVpAVFoqhvtv5AkQ8FF6DxLA/exec";
 
         public Group()
         {

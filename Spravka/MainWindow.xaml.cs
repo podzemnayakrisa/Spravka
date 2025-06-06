@@ -32,7 +32,7 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses; // Хранит все данные для фильтрации
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxK4jsiq0-RNG1rncdeInRABFZ8dlW2kiqhGVzlFyaLLAaZlXC3iqorEb6yRHJ9BMMGCQ/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxYzvHNfsXlB2PaUVZF34Yx6RMaaxb3L93-l7GDKt6ObwLVpAVFoqhvtv5AkQ8FF6DxLA/exec";
         public MainWindow()
         {
             InitializeComponent();
@@ -360,64 +360,59 @@ namespace Spravka
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private async void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (ResponsesDataGrid.SelectedItem is ResponseItem student)
-            {
-                try
-                {
-                    using (var client = new HttpClient())
-                    {
-                        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
-                        client.Timeout = TimeSpan.FromSeconds(30);
+        //private async void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        // {
+        //  if (ResponsesDataGrid.SelectedItem is ResponseItem student)
+        //  {
+        //     try
+        //    {
+        // using (var client = new HttpClient())
+        //  {
+        // client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+        // client.Timeout = TimeSpan.FromSeconds(30);
 
-                        // Получаем данные о группе
-                        var groupName = student.Group;
-                        var groups = await LoadGroupsDataAsync(client);
-                        var group = groups.FirstOrDefault(g => g.Name == groupName);
+        // Получаем данные о группе
+        // var groupName = student.Group;
+        // var groups = await LoadGroupsDataAsync(client);
+        //  var group = groups.FirstOrDefault(g => g.Name == groupName);
+        //            if (group == null)
+        //           {
+        // MessageBox.Show("Группа не найдена", "Ошибка",
+        //   MessageBoxButton.OK, MessageBoxImage.Error);
+        //                      return;
+        //
+        //   var requestData = new
+        //     {
+        //  action = "create_certificate",
+        //  fullName = student.FullName,
+        // course = student.Course,
+        //educationForm = student.EducationForm,
+        // basis = student.Basis,
+        // group = groupName,
+        //  startDate = group.StartDate.ToString("yyyy-MM-dd"),
+        //  endDate = group.EndDate.ToString("yyyy-MM-dd")
+        //   };
+        // Альтернатива PostAsJsonAsync
+        // var json = JsonConvert.SerializeObject(requestData);
+        // var content = new StringContent(json, Encoding.UTF8, "application/json");
+        //var response = await client.PostAsync(GoogleScriptUrl, content);
+        //  if (!response.IsSuccessStatusCode)
+        //     {
+        //          throw new Exception($"Ошибка сервера: {response.StatusCode}");
+        //   }
+        //  var responseString = await response.Content.ReadAsStringAsync();
+        //   var result = JsonConvert.DeserializeObject<Dictionary<string, string>>(responseString);
 
-                        if (group == null)
-                        {
-                            MessageBox.Show("Группа не найдена", "Ошибка",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-
-                        var requestData = new
-                        {
-                            action = "create_certificate",
-                            fullName = student.FullName,
-                            course = student.Course,
-                            educationForm = student.EducationForm,
-                            basis = student.Basis,
-                            group = groupName,
-                            startDate = group.StartDate.ToString("yyyy-MM-dd"),
-                            endDate = group.EndDate.ToString("yyyy-MM-dd")
-                        };
-
-                        // Альтернатива PostAsJsonAsync
-                        var json = JsonConvert.SerializeObject(requestData);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-                        var response = await client.PostAsync(GoogleScriptUrl, content);
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            throw new Exception($"Ошибка сервера: {response.StatusCode}");
-                        }
-
-                        var responseString = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<Dictionary<string, string>>(responseString);
-
-                        Process.Start(new ProcessStartInfo(result["documentUrl"]) { UseShellExecute = true });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
+        //  Process.Start(new ProcessStartInfo(result["documentUrl"]) { UseShellExecute = true });
+        //  }
+        // }
+        //  catch (Exception ex)
+        //   {
+        // MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
+        // MessageBoxButton.OK, MessageBoxImage.Error);
+        //        }
+        // }
+        //  }
 
         private async Task<List<GroupItem>> LoadGroupsDataAsync(HttpClient client)
         {
@@ -482,45 +477,42 @@ namespace Spravka
         }
 
 
-        private async void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
-            {
-                try
-                {
-                    // Получаем данные о группе  
-                    var groupName = selectedItem.Group;
-                    var groups = await GetGroupsListAsync(); // Используем новый метод
-                    var group = groups.FirstOrDefault(g => g.Name == groupName);
+        //private async void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        // {
+        //  if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
+        // {
+        //    try
+        //    {
+        // Получаем данные о группе  
+        // var groupName = selectedItem.Group;
+        //var groups = await GetGroupsListAsync(); // Используем новый метод
+        // var group = groups.FirstOrDefault(g => g.Name == groupName);
+        //        if (group == null)
+        //    {
+        // MessageBox.Show("Группа не найдена", "Ошибка",
+        //  MessageBoxButton.OK, MessageBoxImage.Error);
+        //          return;
+        // }
+        // Создаем документ справки
+        // var document = CreateCertificateDocument(selectedItem, group);
+        // Печать документа
+        //  PrintDocument(document);
 
-                    if (group == null)
-                    {
-                        MessageBox.Show("Группа не найдена", "Ошибка",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    // Создаем документ справки
-                    var document = CreateCertificateDocument(selectedItem, group);
-
-                    // Печать документа
-                    PrintDocument(document);
-
-                    MessageBox.Show("Справка отправлена на печать", "Успех",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка при печати: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            else
-            {
-                MessageBox.Show("Выберите запись для печати", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
+        //  MessageBox.Show("Справка отправлена на печать", "Успех",
+        //  MessageBoxButton.OK, MessageBoxImage.Information);
+        //  }
+        //              catch (Exception ex)
+        //    {
+        //  MessageBox.Show($"Ошибка при печати: {ex.Message}", "Ошибка",
+        //  MessageBoxButton.OK, MessageBoxImage.Error);
+        //  }
+        // }
+        //    else
+        // {
+        // MessageBox.Show("Выберите запись для печати", "Внимание",
+        //  MessageBoxButton.OK, MessageBoxImage.Warning);
+        //  }
+        //  }
         private async Task<List<GroupItem>> GetGroupsListAsync()
         {
             try
@@ -588,119 +580,256 @@ namespace Spravka
                 return new List<GroupItem>();
             }
         }
-
-        private void PrintDocument(FlowDocument document)
+        public class CertificateGenerator
         {
-            var printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == true)
+            private int _certificateCounter = 1;
+
+            public void GenerateAndPrintCertificate(ResponseItem student, GroupItem group = null)
             {
+                try
+                {
+                    FlowDocument certificate = CreateCertificateDocument(student, group);
+                    PrintDocument(certificate);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
+                                  MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+
+            private FlowDocument CreateCertificateDocument(ResponseItem student, GroupItem group = null)
+            {
+                var doc = new FlowDocument
+                {
+                    PageWidth = 794,
+                    PageHeight = 1123,
+                    PagePadding = new Thickness(40),
+                    FontFamily = new FontFamily("Times New Roman"),
+                    FontSize = 12,
+                    TextAlignment = TextAlignment.Left
+                };
+
+                // 1. Шапка с логотипом и реквизитами
+                AddHeaderWithLogo(doc);
+
+                // 2. Номер справки и дата
+                AddCertificateNumberAndDate(doc);
+
+                // 3. Заголовок "СПРАВКА"
+                AddCertificateTitle(doc);
+
+                // 4. Основное содержание
+                AddMainContent(doc, student, group);
+
+                // 5. Подпись и печать
+                AddSignatureBlock(doc);
+
+                return doc;
+            }
+
+            private void AddHeaderWithLogo(FlowDocument doc)
+            {
+                var grid = new Table
+                {
+                    CellSpacing = 0,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
+
+                var column1 = new TableColumn { Width = new GridLength(400) };
+                var column2 = new TableColumn { Width = new GridLength(200) };
+                grid.Columns.Add(column1);
+                grid.Columns.Add(column2);
+
+                var rowGroup = new TableRowGroup();
+                grid.RowGroups.Add(rowGroup);
+
+                // Добавляем строки с реквизитами
+                string[] headerLines = {
+            "Министерство образования Ярославской",
+            "области",
+            "",
+            "государственное профессиональное",
+            "образовательное",
+            "",
+            "автономное учреждение Ярославской",
+            "области",
+            "",
+            "\"Ярославский промышленно-экономический",
+            "колледж",
+            "",
+            "им. Н. П. Пастухова\"",
+            "",
+            "(ГПОАУ ЯО \"Ярославский",
+            "промышленно-экономический колледж",
+            "",
+            "им. Н. П. Пастухова\")",
+            "",
+            "150046, г. Ярославль, ул. Гагарина, 8",
+            "",
+            "44-26-77"
+        };
+
+                foreach (var line in headerLines)
+                {
+                    var row = new TableRow();
+                    var cell1 = new TableCell(new Paragraph(new Run(line)));
+                    var cell2 = new TableCell();
+
+                    if (line.StartsWith("\"") || line.StartsWith("(ГПОАУ"))
+                    {
+                        cell1.ColumnSpan = 2;
+                        row.Cells.Add(cell1);
+                    }
+                    else
+                    {
+                        row.Cells.Add(cell1);
+                        row.Cells.Add(cell2);
+                    }
+
+                    rowGroup.Rows.Add(row);
+                }
+
+                doc.Blocks.Add(grid);
+            }
+
+            private void AddCertificateNumberAndDate(FlowDocument doc)
+            {
+                var currentDate = DateTime.Now;
+
+                var grid = new Table
+                {
+                    CellSpacing = 0,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
+
+                grid.Columns.Add(new TableColumn { Width = new GridLength(400) });
+                grid.Columns.Add(new TableColumn { Width = new GridLength(200) });
+
+                var rowGroup = new TableRowGroup();
+                grid.RowGroups.Add(rowGroup);
+
+                // Номер справки
+                var numberRow = new TableRow();
+                numberRow.Cells.Add(new TableCell(new Paragraph(new Run(""))));
+                numberRow.Cells.Add(new TableCell(new Paragraph(
+                    new Run($"№ {currentDate:yyyyMM}-{_certificateCounter++:000}"))
+                { TextAlignment = TextAlignment.Right }));
+                rowGroup.Rows.Add(numberRow);
+
+                // Разделительная линия
+                var lineRow = new TableRow();
+                lineRow.Cells.Add(new TableCell(new Paragraph(
+                    new Run("________________________"))));
+                lineRow.Cells.Add(new TableCell());
+                rowGroup.Rows.Add(lineRow);
+
+                // Дата
+                var dateRow = new TableRow();
+                dateRow.Cells.Add(new TableCell(new Paragraph(
+                    new Run($"_________________{currentDate:yyyy} г."))));
+                dateRow.Cells.Add(new TableCell());
+                rowGroup.Rows.Add(dateRow);
+
+                doc.Blocks.Add(grid);
+            }
+
+            private void AddCertificateTitle(FlowDocument doc)
+            {
+                var title = new Paragraph(new Run("СПРАВКА"))
+                {
+                    FontSize = 14,
+                    FontWeight = FontWeights.Bold,
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 20, 0, 30)
+                };
+                doc.Blocks.Add(title);
+            }
+
+            private void AddMainContent(FlowDocument doc, ResponseItem student, GroupItem group)
+            {
+                var content = new Paragraph
+                {
+                    Margin = new Thickness(0, 0, 0, 20),
+                    TextAlignment = TextAlignment.Justify
+                };
+
+                content.Inlines.Add(new Run("Выдана настоящая "));
+                content.Inlines.Add(new Bold(new Run(student.FullName)));
+
+                content.Inlines.Add(new Run(", в том, что он(а) обучается в ГПОАУ ЯО \"Ярославский\n" +
+                                         "промышленно-экономический колледж\n\n" +
+                                         "им. Н. П. Пастухова\" на "));
+                content.Inlines.Add(new Bold(new Run(student.Course)));
+                content.Inlines.Add(new Run(" курсе по "));
+                content.Inlines.Add(new Bold(new Run(student.EducationForm)));
+                content.Inlines.Add(new Run(" форме обучения, на "));
+                content.Inlines.Add(new Bold(new Run(student.Basis)));
+                content.Inlines.Add(new Run(" основе.\n\n" +
+                                         "Выдана для предъявления по месту требования.\n\n"));
+
+                if (group != null)
+                {
+                    content.Inlines.Add(new Run("Срок обучения с "));
+                    content.Inlines.Add(new Bold(new Run(group.StartDate.ToString("dd.MM.yyyy"))));
+                    content.Inlines.Add(new Run(" по "));
+                    content.Inlines.Add(new Bold(new Run(group.EndDate.ToString("dd.MM.yyyy"))));
+                    content.Inlines.Add(new Run("."));
+                }
+
+                doc.Blocks.Add(content);
+            }
+
+            private void AddSignatureBlock(FlowDocument doc)
+            {
+                var table = new Table
+                {
+                    CellSpacing = 0,
+                    Margin = new Thickness(0, 40, 0, 0)
+                };
+
+                table.Columns.Add(new TableColumn { Width = new GridLength(300) });
+                table.Columns.Add(new TableColumn { Width = new GridLength(300) });
+
+                var rowGroup = new TableRowGroup();
+                table.RowGroups.Add(rowGroup);
+
+                // Подпись
+                var signRow = new TableRow();
+                signRow.Cells.Add(new TableCell(new Paragraph(new Run("Заведующий отделением"))));
+                signRow.Cells.Add(new TableCell(new Paragraph(
+                    new Run("_________________________"))
+                { TextAlignment = TextAlignment.Right }));
+                rowGroup.Rows.Add(signRow);
+
+                // Телефон
+                var phoneRow = new TableRow();
+                phoneRow.Cells.Add(new TableCell(new Paragraph(new Run("Тел. 48-05-24"))));
+                phoneRow.Cells.Add(new TableCell());
+                rowGroup.Rows.Add(phoneRow);
+
+                doc.Blocks.Add(table);
+            }
+
+            private void PrintDocument(FlowDocument document)
+            {
+                var printDialog = new PrintDialog();
+
                 document.PageHeight = printDialog.PrintableAreaHeight;
                 document.PageWidth = printDialog.PrintableAreaWidth;
-                document.PagePadding = new Thickness(50);
 
-                IDocumentPaginatorSource paginatorSource = document;
-                printDialog.PrintDocument(paginatorSource.DocumentPaginator, "Печать справки");
+                if (printDialog.ShowDialog() == true)
+                {
+                    IDocumentPaginatorSource paginatorSource = document;
+                    printDialog.PrintDocument(paginatorSource.DocumentPaginator, "Справка студента");
+
+                    MessageBox.Show("Справка успешно отправлена на печать",
+                                  "Успешно",
+                                  MessageBoxButton.OK,
+                                  MessageBoxImage.Information);
+                }
             }
         }
-
-        private FlowDocument CreateCertificateDocument(ResponseItem student, GroupItem group = null)
-        {
-            // Создаем документ с оформлением
-            var doc = new FlowDocument
-            {
-                PageWidth = 794,  // A4 в pixels (96 dpi * 210mm / 25.4)
-                PageHeight = 1123,
-                PagePadding = new Thickness(50),
-                FontFamily = new FontFamily("Times New Roman"),
-                FontSize = 12
-            };
-
-            // Шапка колледжа
-            var collegeHeader = new Paragraph();
-            collegeHeader.Inlines.Add(new Run("Министерство образования Ярославской области") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("государственное профессиональное образовательное") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("автономное учреждение Ярославской области") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("«Ярославский промышленно-экономический колледж") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("им. Н. П. Пастухова»") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("(ГПОАУ ЯО «Ярославский промышленно-экономический колледж") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("им. Н. П. Пастухова»)") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("150046, г. Ярославль, ул. Гагарина, 8") { FontSize = 12 });
-            collegeHeader.Inlines.Add(new LineBreak());
-            collegeHeader.Inlines.Add(new Run("44-26-77") { FontSize = 12 });
-            collegeHeader.TextAlignment = TextAlignment.Left;
-            collegeHeader.Margin = new Thickness(0, 0, 0, 20);
-            doc.Blocks.Add(collegeHeader);
-
-            // Разделительная линия
-            var line = new Paragraph();
-            line.Inlines.Add(new Run(new string('_', 100)) { FontSize = 12 });
-            line.TextAlignment = TextAlignment.Center;
-            line.Margin = new Thickness(0, 0, 0, 20);
-            doc.Blocks.Add(line);
-
-            // Заголовок "СПРАВКА"
-            var header = new Paragraph(new Run("СПРАВКА"))
-            {
-                FontSize = 14,
-                FontWeight = FontWeights.Bold,
-                TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 20)
-            };
-            doc.Blocks.Add(header);
-
-            // Основное содержание
-            var content = new Paragraph();
-            content.Inlines.Add(new Run("Выдана настоящая ") { FontSize = 12 });
-            content.Inlines.Add(new Run(student.FullName) { FontWeight = FontWeights.Bold, FontSize = 12 });
-            content.Inlines.Add(new LineBreak());
-            content.Inlines.Add(new Run("в том, что он(а) обучается в ГПОАУ ЯО «Ярославский промышленно-экономический колледж") { FontSize = 12 });
-            content.Inlines.Add(new LineBreak());
-            content.Inlines.Add(new Run("им. Н. П. Пастухова» на ") { FontSize = 12 });
-            content.Inlines.Add(new Run(student.Course) { FontWeight = FontWeights.Bold, FontSize = 12 });
-            content.Inlines.Add(new Run(" курсе по ") { FontSize = 12 });
-            content.Inlines.Add(new Run(student.EducationForm) { FontWeight = FontWeights.Bold, FontSize = 12 });
-            content.Inlines.Add(new Run(" форме обучения, на ") { FontSize = 12 });
-            content.Inlines.Add(new Run(student.Basis) { FontWeight = FontWeights.Bold, FontSize = 12 });
-            content.Inlines.Add(new Run(" основе.") { FontSize = 12 });
-            content.Inlines.Add(new LineBreak());
-            content.Inlines.Add(new LineBreak());
-            content.Inlines.Add(new Run("Выдана для предъявления по месту требования.") { FontSize = 12 });
-            content.Inlines.Add(new LineBreak());
-            content.Inlines.Add(new LineBreak());
-
-            // Добавляем срок обучения, если указана группа
-            if (group != null)
-            {
-                content.Inlines.Add(new Run("Срок обучения с ") { FontSize = 12 });
-                content.Inlines.Add(new Run(group.StartDate.ToString("dd.MM.yyyy")) { FontWeight = FontWeights.Bold, FontSize = 12 });
-                content.Inlines.Add(new Run(" до ") { FontSize = 12 });
-                content.Inlines.Add(new Run(group.EndDate.ToString("dd.MM.yyyy")) { FontWeight = FontWeights.Bold, FontSize = 12 });
-                content.Inlines.Add(new Run(".") { FontSize = 12 });
-            }
-
-            doc.Blocks.Add(content);
-
-            // Подпись
-            var sign = new Paragraph
-            {
-                Margin = new Thickness(0, 40, 0, 0),
-                TextAlignment = TextAlignment.Left
-            };
-            sign.Inlines.Add(new Run("Заведующий отделением") { FontSize = 12 });
-            sign.Inlines.Add(new LineBreak());
-            sign.Inlines.Add(new Run("Тел. 48-05-24") { FontSize = 12 });
-            doc.Blocks.Add(sign);
-
-            return doc;
-        }
-
         private void OpenGroupsWindow_Click(object sender, RoutedEventArgs e)
         {
             var groupsWindow = new Group(this);

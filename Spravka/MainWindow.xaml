@@ -52,8 +52,8 @@
                   SelectionMode="Single">
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Создать справку" Click="CreateCertificateMenuItem_Click"/>
-                    <MenuItem Header="Печать справки" Click="PrintCertificateMenuItem_Click"/>
+                    <MenuItem Header="Создать справку" Click="CreateCertificateDocument"/>
+                    <MenuItem Header="Печать справки" Click="PrintDocument"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
 
