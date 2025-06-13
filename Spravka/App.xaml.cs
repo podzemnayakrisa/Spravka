@@ -15,10 +15,7 @@ namespace Spravka
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            // Для бесплатной версии
-            Xceed.Document.NET.Licenser.LicenseKey = "FREE-FOR-OPEN-SOURCE";
-
-            base.OnStartup(e);
+           
         }
     }
 }

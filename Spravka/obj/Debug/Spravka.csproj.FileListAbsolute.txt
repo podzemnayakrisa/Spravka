@@ -25,3 +25,13 @@ D:\пдф\Spravka\Spravka\obj\Debug\GroupEditDialog.baml
 D:\пдф\Spravka\Spravka\obj\Debug\GroupEditDialog.g.cs
 D:\пдф\Spravka\Spravka\obj\Debug\Group.g.cs
 D:\пдф\Spravka\Spravka\obj\Debug\Group.baml
+D:\пдф\Spravka\Spravka\bin\Debug\System.Drawing.Common.dll
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Document.NET.dll
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Drawing.NET.dll
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Pdf.dll
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Words.NET.dll
+D:\пдф\Spravka\Spravka\bin\Debug\System.Drawing.Common.pdb
+D:\пдф\Spravka\Spravka\bin\Debug\System.Drawing.Common.xml
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Document.NET.xml
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Drawing.NET.xml
+D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Words.NET.xml

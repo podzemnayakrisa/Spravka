@@ -1,50 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using HtmlAgilityPack;
-using System.Net;
-using Spravka;
+using Microsoft.Win32;
 using Newtonsoft.Json;
-using System.Net.Http;
-using System.Globalization;
 using Spravka.Models;
-using System.Diagnostics;
-using GroupItem = Spravka.Models.GroupItem;
-using System.IO; 
-using Xceed.Document.NET;
-using System.Drawing; // Для Color
-
-// Алиасы для типов из Xceed.Document.NET
-using XceedBorder = Xceed.Document.NET.Border;
-using TableBorderType = Xceed.Document.NET.TableBorderType;
-using BorderStyle = Xceed.Document.NET.BorderStyle;
-using Alignment = Xceed.Document.NET.Alignment;
-using TableCellBorderType = Xceed.Document.NET.TableCellBorderType;
-using Xceed.Words.NET;
 
 namespace Spravka
 {
-    /// <summary>
-    /// Логика взаимодействия для MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses;
-        private FlowDocument _currentCertificate;
         private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxYzvHNfsXlB2PaUVZF34Yx6RMaaxb3L93-l7GDKt6ObwLVpAVFoqhvtv5AkQ8FF6DxLA/exec";
+
         public MainWindow()
         {
             InitializeComponent();
@@ -287,7 +267,6 @@ namespace Spravka
             }
         }
 
-
         private async Task AddRowToGoogleSheet(ResponseItem item)
         {
             using (var client = new HttpClient())
@@ -371,231 +350,165 @@ namespace Spravka
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private async Task<List<GroupItem>> GetGroupsListAsync()
-        {
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
-                    client.Timeout = TimeSpan.FromSeconds(30);
 
-                    string url = $"{GoogleScriptUrl}?action=get_groups&t={DateTime.Now.Ticks}";
-                    var response = await client.GetAsync(url);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new Exception($"Ошибка сервера: {response.StatusCode}");
-                    }
-
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    if (string.IsNullOrWhiteSpace(json))
-                    {
-                        throw new Exception("Получен пустой ответ от сервера");
-                    }
-
-                    var scriptResponse = JsonConvert.DeserializeObject<GoogleScriptResponse<List<Dictionary<string, object>>>>(json)
-                        ?? throw new Exception("Не удалось десериализовать данные");
-
-                    if (!scriptResponse.Success || scriptResponse.Data == null)
-                    {
-                        throw new Exception("Сервер вернул пустые данные");
-                    }
-
-                    var groups = new List<GroupItem>();
-                    foreach (var item in scriptResponse.Data.Skip(1))
-                    {
-                        try
-                        {
-                            if (item == null) continue;
-
-                            var newItem = new GroupItem
-                            {
-                                Name = item.ContainsKey("Название") ? item["Название"]?.ToString() : "",
-                                StartDate = ParseDate(item.ContainsKey("Дата начала обучения") ? item["Дата начала обучения"]?.ToString() : ""),
-                                EndDate = ParseDate(item.ContainsKey("Дата окончания обучения") ? item["Дата окончания обучения"]?.ToString() : "")
-                            };
-
-                            if (!string.IsNullOrEmpty(newItem.Name))
-                            {
-                                groups.Add(newItem);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Ошибка обработки элемента: {ex.Message}");
-                        }
-                    }
-
-                    return groups;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка загрузки групп: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return new List<GroupItem>();
-            }
-        }
         private void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            // Простая реализация сохранения как текстового файла
+            var saveDialog = new SaveFileDialog
             {
-                Filter = "Word Document|*.docx"
+                Filter = "Текстовый файл|*.txt",
+                FileName = "справка.txt"
             };
 
             if (saveDialog.ShowDialog() == true)
             {
-                GenerateCertificate(saveDialog.FileName);
-                Process.Start("explorer.exe", $"/select,\"{saveDialog.FileName}\"");
+                try
+                {
+                    File.WriteAllText(saveDialog.FileName, GenerateCertificateText());
+                    Process.Start("explorer.exe", $"/select,\"{saveDialog.FileName}\"");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         private void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            try
+            PrintDialog printDialog = new PrintDialog();
+            if (printDialog.ShowDialog() == true)
             {
-                string tempFile = Path.Combine(Path.GetTempPath(), "spravka_temp.docx");
-                GenerateCertificate(tempFile);
-
-                Process.Start(new ProcessStartInfo
+                try
                 {
-                    FileName = tempFile,
-                    Verb = "print"
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка печати: {ex.Message}");
+                    // Создаем документ для печати
+                    FlowDocument document = CreatePrintableFlowDocument();
+
+                    // Печатаем документ
+                    printDialog.PrintDocument(
+                        ((IDocumentPaginatorSource)document).DocumentPaginator,
+                        "Справка об обучении");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при печати: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
-        private void GenerateCertificate(string filePath)
+        private string GenerateCertificateText()
         {
-            using (var document = DocX.Create(filePath))
-            {
-                // Настройка полей (в мм)
-                document.MarginLeft = 30f;
-                document.MarginRight = 15f;
-                document.MarginTop = 20f;
-                document.MarginBottom = 20f;
+            return @"
+Министерство образования Ярославской области
+государственное профессиональное образовательное
+автономное учреждение Ярославской области
+""Ярославский промышленно-экономический колледж им. Н. П. Пастухова""
+150046, г. Ярославль, ул. Гагарина, 8
+44-26-77
 
-                // Таблица шапки (2 колонки, 19 строк)
-                var table = document.AddTable(19, 2);
-                table.SetWidths(new float[] { 320f, 100f });
-                table.Alignment = Alignment.center;
+« 11 » июня 2025 г   № 6
 
-                // Заполнение левой колонки
-                string[] leftContent =
-                {
-                    "Министерство образования Ярославской",
-                    "области",
-                    "",
-                    "государственное профессиональное",
-                    "образовательное",
-                    "",
-                    "автономное учреждение Ярославской",
-                    "области",
-                    "",
-                    "\"Ярославский промышленно-экономический",
-                    "колледж",
-                    "",
-                    "им. Н. П. Пастухова\"",
-                    "",
-                    "150046, г. Ярославль, ул. Гагарина, 8",
-                    "",
-                    "44-26-77",
-                    "",
-                    "« 11 » июня 2025 г",
-                    "№ 6"
-                };
+СПРАВКА
 
-                for (int i = 0; i < 19; i++)
-                {
-                    var cell = table.Rows[i].Cells[0];
-                    cell.Paragraphs.First().Append(leftContent[i])
-                       .Font("Times New Roman")
-                       .FontSize(10)
-                       .Alignment = Alignment.left;
-                }
+Выдана настоящая Комарову Ивану Сергеевичу в том, что он(а) обучается 
+в ГПОАУ ЯО «Ярославский промышленно-экономический колледж им. Н. П. Пастухова» 
+на 2 курсе по очной форме обучения, на бюджетной основе.
 
-                // Создание границы с использованием System.Drawing.Color
-                var border = new XceedBorder(
-                    BorderStyle.Tcbs_single,
-                    BorderSize.one,
-                    0,
-                    System.Drawing.Color.Black);
+Выдана для предъявления по месту требования.
 
-                table.SetBorder(TableBorderType.Top, border);
-                table.SetBorder(TableBorderType.Bottom, border);
-                table.SetBorder(TableBorderType.Left, border);
-                table.SetBorder(TableBorderType.Right, border);
-                table.SetBorder(TableBorderType.InsideV, border);
+Срок обучения с 01.09.2021 по 30.06.2025.
 
-                // Дополнительные границы для разделителя
-                table.Rows[17].Cells[0].SetBorder(TableCellBorderType.Bottom, border);
-                table.Rows[17].Cells[1].SetBorder(TableCellBorderType.Bottom, border);
+Заведующий отделением                     Ю. В. Маянцева
 
-                document.InsertTable(table);
-
-                // Заголовок "СПРАВКА"
-                var title = document.InsertParagraph("СПРАВКА");
-                title.Alignment = Alignment.center;
-                title.Font("Times New Roman").FontSize(14).Bold();
-                title.SpacingAfter(20f);
-
-                // Основной текст
-                var content = new[]
-                {
-                    "Выдана настоящая Комарову Ивану Сергеевичу",
-                    "в том, что он(а) обучается в ГПОАУ ЯО «Ярославский\nпромышленно-экономический колледж",
-                    "им. Н. П. Пастухова» на 2 курсе по очной форме обучения, на бюджетной\nоснове.",
-                    "Выдана для предъявления по месту требования.",
-                    "Срок обучения с 01.09.2021 по 30.06.2025."
-                };
-
-                foreach (var text in content)
-                {
-                    var p = document.InsertParagraph(text);
-                    p.Font("Times New Roman").FontSize(11);
-                    p.Alignment = Alignment.both;
-                    p.SpacingAfter(5f);
-                }
-
-                document.InsertParagraph().SpacingAfter(20f);
-
-                // Подпись
-                var signTable = document.AddTable(1, 2);
-                signTable.SetWidths(new float[] { 250f, 250f });
-                signTable.Alignment = Alignment.center;
-
-                signTable.Rows[0].Cells[0].Paragraphs.First()
-                    .Append("Заведующий отделением")
-                    .Font("Times New Roman").FontSize(11);
-
-                signTable.Rows[0].Cells[1].Paragraphs.First()
-                    .Append("Ю. В. Маянцева")
-                    .Font("Times New Roman").FontSize(11)
-                    .Alignment = Alignment.right;
-
-                document.InsertTable(signTable);
-
-                // Телефон
-                var phone = document.InsertParagraph("Тел. 48-05-24");
-                phone.Font("Times New Roman").FontSize(11);
-                phone.Alignment = Alignment.left;
-
-                document.Save();
-            }
+Тел. 48-05-24";
         }
-    
 
+        private FlowDocument CreatePrintableFlowDocument()
+        {
+            // Создаем FlowDocument с правильными отступами
+            FlowDocument document = new FlowDocument();
+            document.PagePadding = new Thickness(40);
+            document.PageWidth = 794; // Ширина A4 в пикселях (96 dpi)
 
+            // Шапка документа
+            Paragraph header = new Paragraph();
+            header.Inlines.Add(new Run(
+                "Министерство образования Ярославской области\n" +
+                "государственное профессиональное образовательное\n" +
+                "автономное учреждение Ярославской области\n" +
+                "\"Ярославский промышленно-экономический колледж им. Н. П. Пастухова\"\n" +
+                "150046, г. Ярославль, ул. Гагарина, 8\n" +
+                "44-26-77\n\n" +
+                "« 11 » июня 2025 г   № 6"));
+            header.FontFamily = new FontFamily("Times New Roman");
+            header.FontSize = 10;
+            header.Margin = new Thickness(0, 0, 0, 20);
+            document.Blocks.Add(header);
 
+            // Заголовок "СПРАВКА"
+            Paragraph title = new Paragraph();
+            title.Inlines.Add(new Run("СПРАВКА"));
+            title.FontFamily = new FontFamily("Times New Roman");
+            title.FontSize = 14;
+            title.FontWeight = FontWeights.Bold;
+            title.TextAlignment = TextAlignment.Center;
+            title.Margin = new Thickness(0, 0, 0, 20);
+            document.Blocks.Add(title);
 
+            // Основной текст
+            Paragraph content = new Paragraph();
+            content.Inlines.Add(new Run(
+                "Выдана настоящая Комарову Ивану Сергеевичу в том, что он(а) обучается " +
+                "в ГПОАУ ЯО «Ярославский промышленно-экономический колледж им. Н. П. Пастухова» " +
+                "на 2 курсе по очной форме обучения, на бюджетной основе.\n\n" +
+                "Выдана для предъявления по месту требования.\n\n" +
+                "Срок обучения с 01.09.2021 по 30.06.2025."));
+            content.FontFamily = new FontFamily("Times New Roman");
+            content.FontSize = 11;
+            content.TextAlignment = TextAlignment.Left;
+            content.Margin = new Thickness(0, 0, 0, 40);
+            document.Blocks.Add(content);
 
-private void OpenGroupsWindow_Click(object sender, RoutedEventArgs e)
+            // Подпись
+            Table signTable = new Table();
+            signTable.Margin = new Thickness(0, 0, 0, 0);
+            signTable.TextAlignment = TextAlignment.Center;
+            signTable.Columns.Add(new TableColumn { Width = new GridLength(250) });
+            signTable.Columns.Add(new TableColumn { Width = new GridLength(250) });
+
+            TableRowGroup group = new TableRowGroup();
+            TableRow row = new TableRow();
+
+            // Левая часть подписи
+            TableCell cellLeft = new TableCell();
+            cellLeft.Blocks.Add(new Paragraph(new Run("Заведующий отделением")));
+            cellLeft.TextAlignment = TextAlignment.Left;
+            row.Cells.Add(cellLeft);
+
+            // Правая часть подписи
+            TableCell cellRight = new TableCell();
+            cellRight.Blocks.Add(new Paragraph(new Run("Ю. В. Маянцева")));
+            cellRight.TextAlignment = TextAlignment.Right;
+            row.Cells.Add(cellRight);
+
+            group.Rows.Add(row);
+            signTable.RowGroups.Add(group);
+            document.Blocks.Add(signTable);
+
+            // Телефон
+            Paragraph phone = new Paragraph();
+            phone.Inlines.Add(new Run("Тел. 48-05-24"));
+            phone.FontFamily = new FontFamily("Times New Roman");
+            phone.FontSize = 11;
+            phone.Margin = new Thickness(0, 20, 0, 0);
+            document.Blocks.Add(phone);
+
+            return document;
+        }
+
+        private void OpenGroupsWindow_Click(object sender, RoutedEventArgs e)
         {
             var groupsWindow = new Group(this);
             groupsWindow.Show();
@@ -608,7 +521,3 @@ private void OpenGroupsWindow_Click(object sender, RoutedEventArgs e)
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _ = ApplyFiltersAndSearch();
     }
 }
-
- 
-
-      
