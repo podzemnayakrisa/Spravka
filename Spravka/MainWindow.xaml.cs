@@ -23,7 +23,7 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses;
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbxYzvHNfsXlB2PaUVZF34Yx6RMaaxb3L93-l7GDKt6ObwLVpAVFoqhvtv5AkQ8FF6DxLA/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbwBnfJkPaCaCgKGjBkR1XUtAmwic-QBiTKIWnrp9Vp0vlCSdafzRwNHp8jdo5dd5vDPBw/exec";
 
         public MainWindow()
         {
@@ -351,161 +351,136 @@ namespace Spravka
             }
         }
 
-        private void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            // Простая реализация сохранения как текстового файла
-            var saveDialog = new SaveFileDialog
+            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
-                Filter = "Текстовый файл|*.txt",
-                FileName = "справка.txt"
-            };
-
-            if (saveDialog.ShowDialog() == true)
+                await CreateCertificateForStudent(selectedItem);
+            }
+            else
             {
-                try
-                {
-                    File.WriteAllText(saveDialog.FileName, GenerateCertificateText());
-                    Process.Start("explorer.exe", $"/select,\"{saveDialog.FileName}\"");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                MessageBox.Show("Выберите студента для создания справки", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            PrintDialog printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == true)
+            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
-                try
-                {
-                    // Создаем документ для печати
-                    FlowDocument document = CreatePrintableFlowDocument();
-
-                    // Печатаем документ
-                    printDialog.PrintDocument(
-                        ((IDocumentPaginatorSource)document).DocumentPaginator,
-                        "Справка об обучении");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка при печати: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                await PrintCertificateForStudent(selectedItem);
+            }
+            else
+            {
+                MessageBox.Show("Выберите студента для печати справки", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private string GenerateCertificateText()
+        private async Task CreateCertificateForStudent(ResponseItem student)
         {
-            return @"
-Министерство образования Ярославской области
-государственное профессиональное образовательное
-автономное учреждение Ярославской области
-""Ярославский промышленно-экономический колледж им. Н. П. Пастухова""
-150046, г. Ярославль, ул. Гагарина, 8
-44-26-77
+            try
+            {
+                var result = await CreateCertificateInGoogle(student);
 
-« 11 » июня 2025 г   № 6
+                if (result.Success)
+                {
+                    // Открываем предпросмотр PDF в браузере
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = result.PdfUrl,
+                        UseShellExecute = true
+                    });
 
-СПРАВКА
-
-Выдана настоящая Комарову Ивану Сергеевичу в том, что он(а) обучается 
-в ГПОАУ ЯО «Ярославский промышленно-экономический колледж им. Н. П. Пастухова» 
-на 2 курсе по очной форме обучения, на бюджетной основе.
-
-Выдана для предъявления по месту требования.
-
-Срок обучения с 01.09.2021 по 30.06.2025.
-
-Заведующий отделением                     Ю. В. Маянцева
-
-Тел. 48-05-24";
+                    MessageBox.Show($"Справка создана!\nНомер: {result.CertificateNumber}", "Успех",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка при создании справки: {result.Error}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private FlowDocument CreatePrintableFlowDocument()
+        private async Task PrintCertificateForStudent(ResponseItem student)
         {
-            // Создаем FlowDocument с правильными отступами
-            FlowDocument document = new FlowDocument();
-            document.PagePadding = new Thickness(40);
-            document.PageWidth = 794; // Ширина A4 в пикселях (96 dpi)
+            try
+            {
+                var result = await CreateCertificateInGoogle(student);
 
-            // Шапка документа
-            Paragraph header = new Paragraph();
-            header.Inlines.Add(new Run(
-                "Министерство образования Ярославской области\n" +
-                "государственное профессиональное образовательное\n" +
-                "автономное учреждение Ярославской области\n" +
-                "\"Ярославский промышленно-экономический колледж им. Н. П. Пастухова\"\n" +
-                "150046, г. Ярославль, ул. Гагарина, 8\n" +
-                "44-26-77\n\n" +
-                "« 11 » июня 2025 г   № 6"));
-            header.FontFamily = new FontFamily("Times New Roman");
-            header.FontSize = 10;
-            header.Margin = new Thickness(0, 0, 0, 20);
-            document.Blocks.Add(header);
+                if (result.Success)
+                {
+                    // Скачиваем PDF
+                    var pdfBytes = await new HttpClient().GetByteArrayAsync(result.PdfUrl);
+                    var tempFile = Path.Combine(Path.GetTempPath(), $"certificate_{student.FullName}.pdf");
+                    File.WriteAllBytes(tempFile, pdfBytes);
 
-            // Заголовок "СПРАВКА"
-            Paragraph title = new Paragraph();
-            title.Inlines.Add(new Run("СПРАВКА"));
-            title.FontFamily = new FontFamily("Times New Roman");
-            title.FontSize = 14;
-            title.FontWeight = FontWeights.Bold;
-            title.TextAlignment = TextAlignment.Center;
-            title.Margin = new Thickness(0, 0, 0, 20);
-            document.Blocks.Add(title);
+                    // Печатаем
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = tempFile,
+                        Verb = "print"
+                    });
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка: {result.Error}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка печати: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
-            // Основной текст
-            Paragraph content = new Paragraph();
-            content.Inlines.Add(new Run(
-                "Выдана настоящая Комарову Ивану Сергеевичу в том, что он(а) обучается " +
-                "в ГПОАУ ЯО «Ярославский промышленно-экономический колледж им. Н. П. Пастухова» " +
-                "на 2 курсе по очной форме обучения, на бюджетной основе.\n\n" +
-                "Выдана для предъявления по месту требования.\n\n" +
-                "Срок обучения с 01.09.2021 по 30.06.2025."));
-            content.FontFamily = new FontFamily("Times New Roman");
-            content.FontSize = 11;
-            content.TextAlignment = TextAlignment.Left;
-            content.Margin = new Thickness(0, 0, 0, 40);
-            document.Blocks.Add(content);
+        private async Task<CertificateResponse> CreateCertificateInGoogle(ResponseItem student)
+        {
+            using (var client = new HttpClient())
+            {
+                var data = new
+                {
+                    action = "create_certificate",
+                    fullName = student.FullName,
+                    course = student.Course,
+                    educationForm = student.EducationForm,
+                    basis = student.Basis,
+                    group = student.Group
+                };
 
-            // Подпись
-            Table signTable = new Table();
-            signTable.Margin = new Thickness(0, 0, 0, 0);
-            signTable.TextAlignment = TextAlignment.Center;
-            signTable.Columns.Add(new TableColumn { Width = new GridLength(250) });
-            signTable.Columns.Add(new TableColumn { Width = new GridLength(250) });
+                var content = new StringContent(JsonConvert.SerializeObject(data),
+                    Encoding.UTF8, "application/json");
 
-            TableRowGroup group = new TableRowGroup();
-            TableRow row = new TableRow();
+                var response = await client.PostAsync(GoogleScriptUrl, content);
 
-            // Левая часть подписи
-            TableCell cellLeft = new TableCell();
-            cellLeft.Blocks.Add(new Paragraph(new Run("Заведующий отделением")));
-            cellLeft.TextAlignment = TextAlignment.Left;
-            row.Cells.Add(cellLeft);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new CertificateResponse
+                    {
+                        Success = false,
+                        Error = $"HTTP ошибка: {response.StatusCode}"
+                    };
+                }
 
-            // Правая часть подписи
-            TableCell cellRight = new TableCell();
-            cellRight.Blocks.Add(new Paragraph(new Run("Ю. В. Маянцева")));
-            cellRight.TextAlignment = TextAlignment.Right;
-            row.Cells.Add(cellRight);
+                string json = await response.Content.ReadAsStringAsync();
+                var result = JsonConvert.DeserializeObject<GoogleScriptResponse<CertificateResponse>>(json);
 
-            group.Rows.Add(row);
-            signTable.RowGroups.Add(group);
-            document.Blocks.Add(signTable);
-
-            // Телефон
-            Paragraph phone = new Paragraph();
-            phone.Inlines.Add(new Run("Тел. 48-05-24"));
-            phone.FontFamily = new FontFamily("Times New Roman");
-            phone.FontSize = 11;
-            phone.Margin = new Thickness(0, 20, 0, 0);
-            document.Blocks.Add(phone);
-
-            return document;
+                return new CertificateResponse
+                {
+                    Success = result.Success,
+                    DocumentUrl = result.Data?.DocumentUrl,
+                    PdfUrl = result.Data?.PdfUrl,
+                    CertificateNumber = result.Data?.CertificateNumber,
+                    Error = result.Error
+                };
+            }
         }
 
         private void OpenGroupsWindow_Click(object sender, RoutedEventArgs e)
@@ -514,10 +489,42 @@ namespace Spravka
             groupsWindow.Show();
             this.Hide();
         }
+        private async void PreviewCertificate_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is ResponseItem student)
+            {
+                await CreateCertificateForStudent(student);
+            }
+        }
+
+        private async void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is ResponseItem student)
+            {
+                await PrintCertificateForStudent(student);
+            }
+        }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await LoadDataFromGoogleSheetsAsync();
         private async void SearchButton_Click(object sender, RoutedEventArgs e) => await ApplyFiltersAndSearch();
         private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => _ = ApplyFiltersAndSearch();
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _ = ApplyFiltersAndSearch();
+    }
+
+
+    public class CertificateResponse
+    {
+        public bool Success { get; set; }
+        public string DocumentUrl { get; set; }
+        public string PdfUrl { get; set; }
+        public string CertificateNumber { get; set; }
+        public string Error { get; set; }
+    }
+
+    public class GoogleScriptResponse<T>
+    {
+        public bool Success { get; set; }
+        public T Data { get; set; }
+        public string Error { get; set; }
     }
 }
