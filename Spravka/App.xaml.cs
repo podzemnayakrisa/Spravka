@@ -13,5 +13,12 @@ namespace Spravka
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            // Для бесплатной версии
+            Xceed.Document.NET.Licenser.LicenseKey = "FREE-FOR-OPEN-SOURCE";
+
+            base.OnStartup(e);
+        }
     }
 }
