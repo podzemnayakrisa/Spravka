@@ -355,7 +355,7 @@ namespace Spravka
         {
             if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
-                await CreateCertificateForStudent(selectedItem);
+                await CreateCertificateForStudent(selectedItem, showMessage: true);
             }
             else
             {
@@ -377,7 +377,7 @@ namespace Spravka
             }
         }
 
-        private async Task CreateCertificateForStudent(ResponseItem student)
+        private async Task CreateCertificateForStudent(ResponseItem student, bool showMessage = true)
         {
             try
             {
@@ -385,15 +385,23 @@ namespace Spravka
 
                 if (result.Success)
                 {
-                    // Открываем предпросмотр PDF в браузере
+                    // Автоматическое сохранение без диалога
+                    string fileName = $"Справка_{student.FullName}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+                    string savePath = Path.Combine(GetSaveFolder(), fileName);
+                    await DownloadPdf(result.PdfUrl, savePath);
+
+                    // Открываем предпросмотр
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = result.PdfUrl,
+                        FileName = savePath,
                         UseShellExecute = true
                     });
 
-                    MessageBox.Show($"Справка создана!\nНомер: {result.CertificateNumber}", "Успех",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (showMessage)
+                    {
+                        MessageBox.Show($"Справка сохранена: {savePath}", "Успех",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
                 else
                 {
@@ -407,6 +415,45 @@ namespace Spravka
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private string GetSaveFolder()
+        {
+            // Указываем нужный путь
+            string path = @"D:\пдф\Spravka";
+
+            // Создаем папку если не существует
+            if (!Directory.Exists(path))
+            {
+                try
+                {
+                    Directory.CreateDirectory(path);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Не удалось создать папку: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    // Возвращаем временную папку в случае ошибки
+                    return Path.GetTempPath();
+                }
+            }
+
+            return path;
+        }
+
+        private async Task DownloadPdf(string pdfUrl, string savePath)
+        {
+            using (var client = new HttpClient())
+            {
+                var response = await client.GetAsync(pdfUrl);
+                response.EnsureSuccessStatusCode();
+
+                using (var fs = new FileStream(savePath, FileMode.Create))
+                {
+                    await response.Content.CopyToAsync(fs);
+                }
+            }
+        }
+
 
         private async Task PrintCertificateForStudent(ResponseItem student)
         {
@@ -416,17 +463,12 @@ namespace Spravka
 
                 if (result.Success)
                 {
-                    // Скачиваем PDF
-                    var pdfBytes = await new HttpClient().GetByteArrayAsync(result.PdfUrl);
-                    var tempFile = Path.Combine(Path.GetTempPath(), $"certificate_{student.FullName}.pdf");
-                    File.WriteAllBytes(tempFile, pdfBytes);
+                    // Автоматическое сохранение во временный файл
+                    string tempFile = Path.GetTempFileName() + ".pdf";
+                    await DownloadPdf(result.PdfUrl, tempFile);
 
-                    // Печатаем
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = tempFile,
-                        Verb = "print"
-                    });
+                    // Печать без диалога
+                    PrintPdfSilently(tempFile);
                 }
                 else
                 {
@@ -438,6 +480,39 @@ namespace Spravka
             {
                 MessageBox.Show($"Ошибка печати: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PrintPdfSilently(string filePath)
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    Verb = "print",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = true
+                }
+            };
+
+            process.Start();
+        }
+
+        private void PreviewMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (ResponsesDataGrid.SelectedItem is ResponseItem student)
+            {
+                CreateCertificateForStudent(student, showMessage: false).ConfigureAwait(false);
+            }
+        }
+
+        private void PrintMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (ResponsesDataGrid.SelectedItem is ResponseItem student)
+            {
+                PrintCertificateForStudent(student).ConfigureAwait(false);
             }
         }
 
@@ -489,22 +564,7 @@ namespace Spravka
             groupsWindow.Show();
             this.Hide();
         }
-        private async void PreviewCertificate_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is ResponseItem student)
-            {
-                await CreateCertificateForStudent(student);
-            }
-        }
-
-        private async void PrintButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is ResponseItem student)
-            {
-                await PrintCertificateForStudent(student);
-            }
-        }
-
+       
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await LoadDataFromGoogleSheetsAsync();
         private async void SearchButton_Click(object sender, RoutedEventArgs e) => await ApplyFiltersAndSearch();
         private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => _ = ApplyFiltersAndSearch();

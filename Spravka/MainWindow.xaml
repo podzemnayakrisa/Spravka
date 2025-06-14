@@ -53,6 +53,7 @@
             <DataGrid.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Создать справку" Click="CreateCertificateMenuItem_Click"/>
+                    <MenuItem Header="Просмотр" Click="PreviewMenuItem_Click"/>
                     <MenuItem Header="Печать справки" Click="PrintCertificateMenuItem_Click"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
@@ -79,24 +80,6 @@
                 <DataGridTextColumn Header="Форма обучения" Binding="{Binding EducationForm}" Width="*"/>
                 <DataGridTextColumn Header="Основа" Binding="{Binding Basis}" Width="*"/>
                 <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="*"/>
-                <DataGridTemplateColumn Header="Действия" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Просмотр" 
-                                        Click="PreviewCertificate_Click"
-                                        Margin="2"
-                                        Padding="5,2"
-                                        Tag="{Binding}"/>
-                                <Button Content="Печать" 
-                                        Click="PrintButton_Click"
-                                        Margin="2"
-                                        Padding="5,2"
-                                        Tag="{Binding}"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
