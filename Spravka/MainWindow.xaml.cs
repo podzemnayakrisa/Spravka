@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses;
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbwBnfJkPaCaCgKGjBkR1XUtAmwic-QBiTKIWnrp9Vp0vlCSdafzRwNHp8jdo5dd5vDPBw/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbx9fXJx6Q2yWMzMH5x1hnwodpHnRaTnglkTw-N1QIeiebOQZaZgalLCLw1V9RYHWZctnQ/exec";
 
         public MainWindow()
         {
@@ -351,29 +352,138 @@ namespace Spravka
             }
         }
 
-        private async void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
+            if (ResponsesDataGrid.SelectedItem == null) return;
+
+            dynamic selectedRecord = ResponsesDataGrid.SelectedItem;
+
+            try
             {
-                await CreateCertificateForStudent(selectedItem, showMessage: true);
+                // Создаем сертификат и получаем URL PDF
+                string pdfUrl = CreateCertificateForRecord(selectedRecord);
+
+                // Сохраняем URL в запись
+                selectedRecord.PdfUrl = pdfUrl;
+
+                // Обновляем отображение
+                ResponsesDataGrid.Items.Refresh();
+
+                MessageBox.Show("Справка успешно создана!");
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Выберите студента для создания справки", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Ошибка при создании справки: {ex.Message}");
             }
         }
 
-        private async void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private string CreateCertificateForRecord(dynamic record)
         {
-            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
+            try
             {
-                await PrintCertificateForStudent(selectedItem);
+                // 1. Подготавливаем данные для отправки в Google Apps Script
+                var requestData = new
+                {
+                    action = "create_certificate",
+                    fullName = record.FullName,
+                    course = record.Course,
+                    educationForm = record.EducationForm,
+                    basis = record.Basis,
+                    group = record.Group
+                };
+
+                // 2. URL вашего веб-приложения Google Apps Script
+                string scriptUrl = "https://script.google.com/macros/s/AKfycbx9fXJx6Q2yWMzMH5x1hnwodpHnRaTnglkTw-N1QIeiebOQZaZgalLCLw1V9RYHWZctnQ/exec";
+
+                // 3. Отправляем запрос
+                using (WebClient client = new WebClient())
+                {
+                    client.Headers[HttpRequestHeader.ContentType] = "application/json";
+                    string jsonData = JsonConvert.SerializeObject(requestData);
+                    string response = client.UploadString(scriptUrl, "POST", jsonData);
+
+                    // 4. Парсим ответ
+                    var result = JsonConvert.DeserializeObject<dynamic>(response);
+                    if (result.success == true)
+                    {
+                        return result.data.pdfUrl.ToString();
+                    }
+                    else
+                    {
+                        throw new Exception(result.error.ToString());
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Выберите студента для печати справки", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                throw new Exception($"Ошибка при создании сертификата: {ex.Message}");
+            }
+        }
+
+        private void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Проверяем, выбрана ли строка
+            if (ResponsesDataGrid.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите запись для печати.");
+                return;
+            }
+
+            // Получаем выбранный объект (динамически определяем тип)
+            dynamic selectedRecord = ResponsesDataGrid.SelectedItem;
+
+            // Проверяем наличие PDF
+            if (string.IsNullOrEmpty(selectedRecord.PdfUrl))
+            {
+                MessageBox.Show("Для выбранной записи отсутствует PDF-файл. Создайте справку сначала.");
+                return;
+            }
+
+            try
+            {
+                // Скачиваем PDF
+                string tempFilePath = Path.GetTempFileName() + ".pdf";
+                using (WebClient client = new WebClient())
+                {
+                    client.DownloadFile(selectedRecord.PdfUrl, tempFilePath);
+                }
+
+                // Открываем системный диалог печати
+                PrintUsingSystemDialog(tempFilePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при печати: {ex.Message}");
+            }
+        }
+
+        private void PrintUsingSystemDialog(string filePath)
+        {
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = filePath,
+                        Verb = "print",
+                        UseShellExecute = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+
+                // Отложенное удаление файла (через 5 секунд)
+                Task.Delay(5000).ContinueWith(t =>
+                {
+                    try { File.Delete(filePath); }
+                    catch { /* Игнорируем ошибки удаления */ }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка печати: {ex.Message}");
             }
         }
 
@@ -579,6 +689,7 @@ namespace Spravka
         public string PdfUrl { get; set; }
         public string CertificateNumber { get; set; }
         public string Error { get; set; }
+
     }
 
     public class GoogleScriptResponse<T>
