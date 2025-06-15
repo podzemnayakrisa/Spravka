@@ -35,3 +35,6 @@ D:\пдф\Spravka\Spravka\bin\Debug\System.Drawing.Common.xml
 D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Document.NET.xml
 D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Drawing.NET.xml
 D:\пдф\Spravka\Spravka\bin\Debug\Xceed.Words.NET.xml
+D:\пдф\Spravka\Spravka\bin\Debug\PdfiumViewer.dll
+D:\пдф\Spravka\Spravka\bin\Debug\PdfiumViewer.xml
+D:\пдф\Spravka\Spravka\bin\Debug\nl\PdfiumViewer.resources.dll

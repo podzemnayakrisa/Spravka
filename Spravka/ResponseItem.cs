@@ -103,6 +103,13 @@ public class ResponseItem : INotifyPropertyChanged
             }
         }
     }
+    // В файле ResponseItem.cs
+    private string _pdfUrl;
+    public string PdfUrl
+    {
+        get => _pdfUrl;
+        set => SetField(ref _pdfUrl, value);
+    }
     private string _certificateNumber;
     public string CertificateNumber
     {

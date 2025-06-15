@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses;
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbx9fXJx6Q2yWMzMH5x1hnwodpHnRaTnglkTw-N1QIeiebOQZaZgalLCLw1V9RYHWZctnQ/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbwmphanUtB6Hk8-7rc8yyYHHCNjrtkywwoqOreEkOA8rWqpH6Tug8tygusoX-l93NEWHQ/exec";
 
         public MainWindow()
         {
@@ -182,18 +183,27 @@ namespace Spravka
             if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
                 selectedItem.Status = selectedItem.IsReady ? "Готово" : "В работе";
-                await UpdateStatusInGoogleSheet(selectedItem.Email, selectedItem.Status);
+                await UpdateStatusInGoogleSheet(selectedItem.Email, selectedItem.Status, selectedItem.FullName);
             }
         }
 
-        private async Task UpdateStatusInGoogleSheet(string email, string status)
+        private async Task UpdateStatusInGoogleSheet(string email, string status, string fullName)
         {
             try
             {
                 using (var client = new HttpClient())
                 {
-                    var data = new { action = "update_status", email, status };
-                    var content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
+                    var data = new
+                    {
+                        action = "update_status",
+                        email,
+                        status,
+                        fullName // Добавляем полное имя
+                    };
+
+                    var content = new StringContent(JsonConvert.SerializeObject(data),
+                        Encoding.UTF8, "application/json");
+
                     var response = await client.PostAsync(GoogleScriptUrl, content);
 
                     if (!response.IsSuccessStatusCode)
@@ -204,7 +214,8 @@ namespace Spravka
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при обновлении статуса: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка при обновлении статуса: {ex.Message}",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -352,108 +363,57 @@ namespace Spravka
             }
         }
 
-        private void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void CreateCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (ResponsesDataGrid.SelectedItem == null) return;
-
-            dynamic selectedRecord = ResponsesDataGrid.SelectedItem;
-
-            try
+            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
-                // Создаем сертификат и получаем URL PDF
-                string pdfUrl = CreateCertificateForRecord(selectedRecord);
-
-                // Сохраняем URL в запись
-                selectedRecord.PdfUrl = pdfUrl;
-
-                // Обновляем отображение
-                ResponsesDataGrid.Items.Refresh();
-
-                MessageBox.Show("Справка успешно создана!");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при создании справки: {ex.Message}");
-            }
-        }
-
-        private string CreateCertificateForRecord(dynamic record)
-        {
-            try
-            {
-                // 1. Подготавливаем данные для отправки в Google Apps Script
-                var requestData = new
+                try
                 {
-                    action = "create_certificate",
-                    fullName = record.FullName,
-                    course = record.Course,
-                    educationForm = record.EducationForm,
-                    basis = record.Basis,
-                    group = record.Group
-                };
+                    var result = await CreateCertificateInGoogle(selectedItem);
 
-                // 2. URL вашего веб-приложения Google Apps Script
-                string scriptUrl = "https://script.google.com/macros/s/AKfycbx9fXJx6Q2yWMzMH5x1hnwodpHnRaTnglkTw-N1QIeiebOQZaZgalLCLw1V9RYHWZctnQ/exec";
-
-                // 3. Отправляем запрос
-                using (WebClient client = new WebClient())
-                {
-                    client.Headers[HttpRequestHeader.ContentType] = "application/json";
-                    string jsonData = JsonConvert.SerializeObject(requestData);
-                    string response = client.UploadString(scriptUrl, "POST", jsonData);
-
-                    // 4. Парсим ответ
-                    var result = JsonConvert.DeserializeObject<dynamic>(response);
-                    if (result.success == true)
+                    if (result.Success)
                     {
-                        return result.data.pdfUrl.ToString();
+                        selectedItem.PdfUrl = result.PdfUrl;
+                        ResponsesDataGrid.Items.Refresh();
+                        MessageBox.Show("Справка успешно создана!");
                     }
                     else
                     {
-                        throw new Exception(result.error.ToString());
+                        MessageBox.Show($"Ошибка при создании справки: {result.Error}");
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Ошибка при создании сертификата: {ex.Message}");
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при создании справки: {ex.Message}");
+                }
             }
         }
 
-        private void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void PrintCertificateMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            // Проверяем, выбрана ли строка
-            if (ResponsesDataGrid.SelectedItem == null)
+            if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
-                MessageBox.Show("Выберите запись для печати.");
-                return;
-            }
-
-            // Получаем выбранный объект (динамически определяем тип)
-            dynamic selectedRecord = ResponsesDataGrid.SelectedItem;
-
-            // Проверяем наличие PDF
-            if (string.IsNullOrEmpty(selectedRecord.PdfUrl))
-            {
-                MessageBox.Show("Для выбранной записи отсутствует PDF-файл. Создайте справку сначала.");
-                return;
-            }
-
-            try
-            {
-                // Скачиваем PDF
-                string tempFilePath = Path.GetTempFileName() + ".pdf";
-                using (WebClient client = new WebClient())
+                if (string.IsNullOrEmpty(selectedItem.PdfUrl))
                 {
-                    client.DownloadFile(selectedRecord.PdfUrl, tempFilePath);
+                    MessageBox.Show("Для выбранной записи отсутствует PDF-файл. Создайте справку сначала.");
+                    return;
                 }
 
-                // Открываем системный диалог печати
-                PrintUsingSystemDialog(tempFilePath);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при печати: {ex.Message}");
+                try
+                {
+                    string tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
+
+                    using (var client = new WebClient())
+                    {
+                        await client.DownloadFileTaskAsync(selectedItem.PdfUrl, tempFilePath);
+                    }
+
+                    PrintUsingSystemDialog(tempFilePath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при печати: {ex.Message}");
+                }
             }
         }
 
@@ -461,32 +421,87 @@ namespace Spravka
         {
             try
             {
-                var process = new Process
+                // Проверка существования файла
+                if (!File.Exists(filePath))
                 {
-                    StartInfo = new ProcessStartInfo
+                    MessageBox.Show("Файл для печати не найден");
+                    return;
+                }
+
+                // Открываем файл в программе по умолчанию с параметром печати
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    Verb = "print",
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                });
+
+                // Отложенное удаление файла
+                Task.Delay(30000).ContinueWith(t =>
+                {
+                    try
                     {
-                        FileName = filePath,
-                        Verb = "print",
-                        UseShellExecute = true,
-                        CreateNoWindow = true
+                        if (File.Exists(filePath))
+                            File.Delete(filePath);
                     }
-                };
-
-                process.Start();
-
-                // Отложенное удаление файла (через 5 секунд)
-                Task.Delay(5000).ContinueWith(t =>
-                {
-                    try { File.Delete(filePath); }
                     catch { /* Игнорируем ошибки удаления */ }
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка печати: {ex.Message}");
+                // Попробуем альтернативный метод печати
+                TryAlternativePrint(filePath, ex);
             }
         }
 
+        private void TryAlternativePrint(string filePath, Exception originalEx)
+        {
+            try
+            {
+                // Попытка 1: Открыть в ассоциированной программе
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
+
+                MessageBox.Show("Файл открыт для просмотра. Пожалуйста, распечатайте его вручную.");
+            }
+            catch
+            {
+                // Попытка 2: Использовать системную утилиту Microsoft Print to PDF
+                PrintWithBuiltInFeature(filePath, originalEx);
+            }
+        }
+
+        private void PrintWithBuiltInFeature(string filePath, Exception originalEx)
+        {
+            try
+            {
+                string printerName = "Microsoft Print to PDF";
+
+                // Проверяем наличие принтера
+                if (!PrinterSettings.InstalledPrinters.Cast<string>().Any(p => p.Contains(printerName)))
+                {
+                    throw new Exception($"Принтер '{printerName}' не найден");
+                }
+
+                using (var document = PdfiumViewer.PdfDocument.Load(filePath))
+                {
+                    using (var printDocument = document.CreatePrintDocument())
+                    {
+                        printDocument.PrinterSettings.PrinterName = printerName;
+                        printDocument.Print();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Если все методы не сработали, показываем оригинальную ошибку
+                MessageBox.Show($"Ошибка печати: {originalEx.Message}\n\nДополнительно: {ex.Message}");
+            }
+        }
         private async Task CreateCertificateForStudent(ResponseItem student, bool showMessage = true)
         {
             try
@@ -525,6 +540,7 @@ namespace Spravka
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private string GetSaveFolder()
         {
             // Указываем нужный путь
@@ -564,7 +580,6 @@ namespace Spravka
             }
         }
 
-
         private async Task PrintCertificateForStudent(ResponseItem student)
         {
             try
@@ -574,11 +589,11 @@ namespace Spravka
                 if (result.Success)
                 {
                     // Автоматическое сохранение во временный файл
-                    string tempFile = Path.GetTempFileName() + ".pdf";
+                    string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
                     await DownloadPdf(result.PdfUrl, tempFile);
 
                     // Печать без диалога
-                    PrintPdfSilently(tempFile);
+                    PrintUsingSystemDialog(tempFile);
                 }
                 else
                 {
@@ -591,23 +606,6 @@ namespace Spravka
                 MessageBox.Show($"Ошибка печати: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void PrintPdfSilently(string filePath)
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = filePath,
-                    Verb = "print",
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                    UseShellExecute = true
-                }
-            };
-
-            process.Start();
         }
 
         private void PreviewMenuItem_Click(object sender, RoutedEventArgs e)
@@ -628,42 +626,63 @@ namespace Spravka
 
         private async Task<CertificateResponse> CreateCertificateInGoogle(ResponseItem student)
         {
-            using (var client = new HttpClient())
+            try
             {
-                var data = new
+                using (var client = new HttpClient())
                 {
-                    action = "create_certificate",
-                    fullName = student.FullName,
-                    course = student.Course,
-                    educationForm = student.EducationForm,
-                    basis = student.Basis,
-                    group = student.Group
-                };
+                    var data = new
+                    {
+                        action = "create_certificate",
+                        fullName = student.FullName,
+                        course = student.Course,
+                        educationForm = student.EducationForm,
+                        basis = student.Basis,
+                        group = student.Group
+                    };
 
-                var content = new StringContent(JsonConvert.SerializeObject(data),
-                    Encoding.UTF8, "application/json");
+                    var content = new StringContent(JsonConvert.SerializeObject(data),
+                        Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync(GoogleScriptUrl, content);
+                    var response = await client.PostAsync(GoogleScriptUrl, content);
 
-                if (!response.IsSuccessStatusCode)
-                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return new CertificateResponse
+                        {
+                            Success = false,
+                            Error = $"HTTP ошибка: {response.StatusCode}"
+                        };
+                    }
+
+                    string json = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<GoogleScriptResponse<CertificateResponse>>(json);
+
+                    // Проверяем структуру ответа
+                    if (result.Success && result.Data != null)
+                    {
+                        return new CertificateResponse
+                        {
+                            Success = true,
+                            DocumentUrl = result.Data.DocumentUrl,
+                            PdfUrl = result.Data.PdfUrl,
+                            CertificateNumber = result.Data.CertificateNumber,
+                            Error = result.Error
+                        };
+                    }
+
                     return new CertificateResponse
                     {
-                        Success = false,
-                        Error = $"HTTP ошибка: {response.StatusCode}"
+                        Success = result.Success,
+                        Error = result.Error ?? "Неизвестная ошибка при создании сертификата"
                     };
                 }
-
-                string json = await response.Content.ReadAsStringAsync();
-                var result = JsonConvert.DeserializeObject<GoogleScriptResponse<CertificateResponse>>(json);
-
+            }
+            catch (Exception ex)
+            {
                 return new CertificateResponse
                 {
-                    Success = result.Success,
-                    DocumentUrl = result.Data?.DocumentUrl,
-                    PdfUrl = result.Data?.PdfUrl,
-                    CertificateNumber = result.Data?.CertificateNumber,
-                    Error = result.Error
+                    Success = false,
+                    Error = ex.Message
                 };
             }
         }
@@ -674,13 +693,12 @@ namespace Spravka
             groupsWindow.Show();
             this.Hide();
         }
-       
+
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await LoadDataFromGoogleSheetsAsync();
         private async void SearchButton_Click(object sender, RoutedEventArgs e) => await ApplyFiltersAndSearch();
         private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => _ = ApplyFiltersAndSearch();
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _ = ApplyFiltersAndSearch();
     }
-
 
     public class CertificateResponse
     {
@@ -689,7 +707,6 @@ namespace Spravka
         public string PdfUrl { get; set; }
         public string CertificateNumber { get; set; }
         public string Error { get; set; }
-
     }
 
     public class GoogleScriptResponse<T>
