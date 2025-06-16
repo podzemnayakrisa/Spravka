@@ -25,7 +25,7 @@ namespace Spravka
     {
         private ObservableCollection<ResponseItem> _responses;
         private ObservableCollection<ResponseItem> _allResponses;
-        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbwmphanUtB6Hk8-7rc8yyYHHCNjrtkywwoqOreEkOA8rWqpH6Tug8tygusoX-l93NEWHQ/exec";
+        private const string GoogleScriptUrl = "https://script.google.com/macros/s/AKfycbzLfhuXtJycyH67GGTITeJGuxxoNSOXXBT5U2GjLsQAcNmvDKUbOjF5RwaYZdnN7qJ3gg/exec";
 
         public MainWindow()
         {
@@ -183,7 +183,11 @@ namespace Spravka
             if (ResponsesDataGrid.SelectedItem is ResponseItem selectedItem)
             {
                 selectedItem.Status = selectedItem.IsReady ? "Готово" : "В работе";
-                await UpdateStatusInGoogleSheet(selectedItem.Email, selectedItem.Status, selectedItem.FullName);
+                await UpdateStatusInGoogleSheet(
+                    selectedItem.Email,
+                    selectedItem.Status,
+                    selectedItem.FullName // Важно передать полное имя
+                );
             }
         }
 
@@ -198,7 +202,7 @@ namespace Spravka
                         action = "update_status",
                         email,
                         status,
-                        fullName // Добавляем полное имя
+                        fullName // Убедитесь, что передается
                     };
 
                     var content = new StringContent(JsonConvert.SerializeObject(data),
